@@ -47,12 +47,10 @@ def main(separator='\t'):
 	if int(oldRow) == 3:
 		print ""
 		#print vRow
-		#print W[int(oldRow)]
 
 def computeGradiant(oldRow, vRow):
 	# dH = W'*(W*H-V);
 
-	#print W[int(oldRow)]
 	index = int(oldRow)
 
 	rowW = W[index]
@@ -60,18 +58,12 @@ def computeGradiant(oldRow, vRow):
 	colW = [row[index] for row in WTrans] 
 	colH =[row[index] for row in H]		
 	
-	#numpy.dot(colW, )
-	#print rowW
 	#print "---------------"
-	print vRow	
 	dH = numpy.subtract(numpy.dot(rowW,colH), vRow)
-	#print dH
 
 if __name__ == "__main__":
 	wf = open ( 'w.arr' , 'r')
 	W = [ map(float,line.split(' ')) for line in wf ]
-	#with open('w.arr') as wf:
-	#    W = [[float(digit) for digit in line.split()] for line in wf]
 
 	hf = open ( 'h.arr' , 'r')
 	H = [ map(float,line.split(' ')) for line in hf ]
