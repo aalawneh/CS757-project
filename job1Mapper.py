@@ -15,6 +15,6 @@ for line in sys.stdin:
 	# emit userID,movieID,ratings --> emit(i,j,v)
 	if len(data) >= 3:
 		userID, movieID, ratings, timestamp = data
-		key = userID + ',' + movieID
-		value = ratings
+		key = userID 
+		value = movieID + ',' + ratings
 		print '%s\t%s' % (key, value)
