@@ -19,86 +19,66 @@ def read_input(file):
         yield line.split()
 
 def main(separator='\t'):
-	oldRow = None
-	oldColumn = None
-	VRow = []
-	vRow = [0]*1682
-	VColumn = []
-	vColumn = [0]*943
-	line = read_input(sys.stdin)
+
+	oldKey = None
+
+	vVector = []
 	if isForW == True:
-		for line in sys.stdin:
-
-			data_mapped = line.strip().split('\t')
-			thisColumn, value_data = data_mapped
-
-			if thisColumn:		
-				if oldColumn and oldColumn != thisColumn:
-					VColumn = []
-					vColumn = [0]*943
-					# here we should calculate the gradiant for user ID x
-					computeGradiant(oldColumn, vColumn)
-		
-				oldColumn = thisColumn
-				row, value = value_data.split(',')
-				vColumn[int(row)] = value 
-
-		# do not forget to compute gradiant for the last row
-		if thisColumn != None:
-			computeGradiant(oldColumn, vColumn)
-
-		# for testing .. test for the last row like 943
-		if int(oldColumn) == 3:
-			print ""
-			#print vRow
-
+		vVector = [0]*943 # column		
 	else:
-		for line in sys.stdin:
-
-			data_mapped = line.strip().split('\t')
-			thisRow, value_data = data_mapped
-
-			if thisRow:		
-				if oldRow and oldRow != thisRow:
-					VRow = []			
-					vRow = [0]*1682
-					# here we should calculate the gradiant for user ID x
-					computeGradiant(oldRow, vRow)
+		vVector = [0]*1682 # row
 		
-				oldRow = thisRow
-				col, value = value_data.split(',')
-				vRow[int(col)] = value 
+	line = read_input(sys.stdin)
+	for line in sys.stdin:
 
-		# do not forget to compute gradiant for the last row
-		if thisRow != None:
-			computeGradiant(oldRow, vRow)
+		data_mapped = line.strip().split('\t')
+		thisKey, value_data = data_mapped
 
+		if thisKey:		
+			if oldKey and oldKey != thisKey:
+				if isForW == True:					
+					vVector = [0]*943 # column
+				else:
+					vVector = [0]*1682 # row
+					
+				# here we should calculate the gradiant for user ID x
+				computeGradiant(oldKey, vVector)
+	
+			oldKey = thisKey
+			index, value = value_data.split(',')
+			vVector[int(index)] = float(value)
 
+	# do not forget to compute gradiant for the last row
+	if thisKey != None:
+		computeGradiant(oldKey, vVector)
 
-
-
+	# for testing .. test for the last colum like 943
+	if int(oldKey) == 3:
+		print ""
+		#print vRow
 
 def computeGradiant(theIndex, vVector):
+
+	index = int(theIndex)
+
 	if isForW == True:
 		# dH = W'*(W*H-V);
-
-		index = int(theIndex)
-
-		WTrans = (numpy.array(W)).transpose()
-
-		colH = H[:,index]
+		WTrans = (numpy.matrix(W)).transpose()
+		hArr = numpy.array(H)
+		colH = hArr[:,index]
 	
 		# dH for column(index)
-		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))
-		print WTrans
+        	dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))
+		print dH
 	else:
+		# dW = (W*H-V)*H'
 		print ""
 	
 if __name__ == "__main__":
 	wf = open ( 'w.arr' , 'r')
-	W = [ map(float,line.split(' ')) for line in wf ]
+	W = [ map(float,line.split()) for line in wf ]
 
 	hf = open ( 'h.arr' , 'r')
-	H = [ map(float,line.split(' ')) for line in hf ]
+	H = [ map(float,line.split()) for line in hf ]
 
 	main()
