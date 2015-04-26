@@ -8,7 +8,14 @@ try:
 except:
     print "This implementation requires the numpy module."
     exit(0)
-    
+	
+# this will differ by environment
+streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar"
+# streaming_jar = "/usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar"
+
+# different input files
+input_file = "proj/input/100K-ratings.dat"
+
 def projfunc(s, k1, k2):
 	# this will be a mapreduce job later
 	n = len(s)
@@ -38,6 +45,30 @@ def projfunc(s, k1, k2):
     
 	return v
 
+def calc_cost():
+	os.system("hadoop fs -put hnew.arr proj/input")
+	os.system("hadoop fs -put wnew.arr proj/input")
+	os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'cost-mapper.py 1000' -reducer 'cost-reducer.py'  -file cost-mapper.py -file cost-reducer.py  -cacheFile proj/input/wnew.arr#w.arr -cacheFile proj/input/hnew.arr#h.arr")
+
+	os.system("hadoop fs -get proj/output/part-00000")
+	os.system("hadoop fs -rm -r proj/output")
+	os.system("hadoop fs -rm proj/input/hnew.arr")
+	os.system("hadoop fs -rm proj/input/wnew.arr")
+	
+	count = 0
+	sse = 0
+	costFile = open ( 'part-00000' , 'r')
+	for line in costFile:
+		data = line.split('\t')
+		count += int(data[0])
+		sse += float(data[1])
+	
+	rmse = np.sqrt(sse/count)
+	print "Current RMSE: %s" % rmse
+	os.system("rm part-00000")
+	return rmse
+
+
 def main():
 	try:
 		os.system("rm -rf part-00000")
@@ -62,6 +93,8 @@ def main():
 	# sparseness constraints for W and H
 	sW = 0.8
 	sH = 0.8
+	# epsilon value for convergence detection
+	epsilon = 1e-10
 
 	# Create initial matrices: 
 	# vdim-by-rdim matrix of normally distributed random numbers.
@@ -79,6 +112,11 @@ def main():
 	# Save W and H to a file
 	np.savetxt('w.arr', W, '%.18e', delimiter=' ')
 	np.savetxt('h.arr', H, '%.18e', delimiter=' ')
+	
+	# initial cost
+	os.system("cp w.arr wnew.arr")
+	os.system("cp h.arr hnew.arr")
+	cost = calc_cost()
 
 	# Initial stepsizes
 	stepsizeW = 1;
@@ -89,14 +127,15 @@ def main():
 
 	while True:
 		iter += 1;
+		print "Iteration %s" % iter
 		# ***** This is for W *****
 		isForW = True;
 
 		# Gradient for W
 		# Map/Reduce Job 1
-                # ####  Maper: send one V row to the reducer
+		# ####  Mapper: send one V row to the reducer
 		# ####  Reducer: calculate the gradient dW = (W*H-V)*H'
-		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+		os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 		
 		# save dW
 		os.system("hadoop fs -get proj/output/part-00000")
@@ -111,7 +150,7 @@ def main():
 			dW[index,:] = vector
 
 		# clean up
-		os.system("hadoop fs -rm -r proj/output/*")
+		os.system("hadoop fs -rm -r proj/output/")
 
 		while True:
 			# Update W --> Wnew = W- stepsize * dW
@@ -123,6 +162,16 @@ def main():
 				W[:,i] = projfunc(W[:,i],L1a,1)
 				
 			# calculate the cost
+			new_cost = calc_cost()
+			
+			if new_cost < cost:
+				cost = new_cost
+				break
+				
+			stepsizeW = stepsizeW/2
+			if stepsizeW < epsilon and stepsizeH < epsilon:
+				print "Algorithm converged. RMSE: %s" % cost
+				return
 			
 		#increase step size for next iteration
 		stepsizeW = stepsizeW*1.2
@@ -134,9 +183,9 @@ def main():
 
 		# Gradient for H
 		# Map/Reduce Job 1
-                # ####  Maper: send one V column to the reducer
+		# ####  Mapper: send one V column to the reducer
 		# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
-		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+		os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 		
 		# save dW
 		os.system("hadoop fs -get proj/output/part-00000")
@@ -151,7 +200,7 @@ def main():
 			dH[:,index] = vector
 
 		# clean up
-		os.system("hadoop fs -rm -r proj/output/*")
+		os.system("hadoop fs -rm -r proj/output/")
 
 		while True:
 			# Update H --> Hnew = H- stepsize * dH
@@ -163,6 +212,16 @@ def main():
 				H[i,:] = projfunc(H[i,:],L1s,1)
 			
 			# calculate the cost
+			new_cost = calc_cost()
+			
+			if new_cost < cost:
+				cost = new_cost
+				break
+				
+			stepsizeW = stepsizeW/2
+			if stepsizeW < epsilon and stepsizeH < epsilon:
+				print "Algorithm converged. RMSE: %s" % cost
+				return
 			
 		#increase step size for next iteration
 		stepsizeH = stepsizeH*1.2
