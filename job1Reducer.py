@@ -6,9 +6,9 @@
 import sys
 import numpy
 
-# Passing arguments isForW -mapper 'count_mapper.py arg1 arg2'  
-# arg1 = sys.argv[1]
-isForW = True
+# Passing arguments isForW -mapper 'mapper.py arg1 arg2'  
+if sys.argv[1] == "isForW":
+	isForW = True
 
 W = []
 H = []
@@ -24,9 +24,9 @@ def main(separator='\t'):
 
 	vVector = []
 	if isForW == True:
-		vVector = [0]*943 # column		
+		vVector = [0]*1682 # row		
 	else:
-		vVector = [0]*1682 # row
+		vVector = [0]*943 # column
 		
 	line = read_input(sys.stdin)
 	for line in sys.stdin:
@@ -37,9 +37,9 @@ def main(separator='\t'):
 		if thisKey:		
 			if oldKey and oldKey != thisKey:
 				if isForW == True:					
-					vVector = [0]*943 # column
-				else:
 					vVector = [0]*1682 # row
+				else:
+					vVector = [0]*943 # column					
 					
 				# here we should calculate the gradiant for user ID x
 				computeGradiant(oldKey, vVector)
@@ -52,32 +52,27 @@ def main(separator='\t'):
 	if thisKey != None:
 		computeGradiant(oldKey, vVector)
 
-	# for testing .. test for the last colum like 943
-	if int(oldKey) == 3:
-		print ""
-		#print vRow
-
 def computeGradiant(theIndex, vVector):
 
 	index = int(theIndex)
 
 	if isForW == True:
+		# dW = (W*H-V)*H'
+		HTrans = (numpy.array(H)).transpose()
+		wArr = numpy.array(W)
+		rowW = wArr[index,:]
+		# we need H and row of W
+		dW = numpy.dot(numpy.subtract(numpy.dot(rowW, H), vVector), HTrans)
+		print '%s\t%s' % (index, ",".join(map(str, dW)))
+	else: 
 		# dH = W'*(W*H-V);
-		WTrans = (numpy.matrix(W)).transpose()
+		WTrans = (numpy.array(W)).transpose()
 		hArr = numpy.array(H)
 		colH = hArr[:,index]
 	
 		# we need W and column of H
 		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))        	
-		print dH
-	else:
-		# dW = (W*H-V)*H'
-		HTrans = (numpy.matrix(H)).transpose()
-		wArr = numpy.array(W)
-		rowW = wArr[index,:]
-		# we need H and row of W
-		dW = numpy.dot(numpy.subtract(numpy.dot(rowW, H), vVector), HTrans)
-		print "" 
+		print '%s\t%s' % (index, ",".join(map(str, dH)))   
 	
 if __name__ == "__main__":
 	wf = open ( 'w.arr' , 'r')
