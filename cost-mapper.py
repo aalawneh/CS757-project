@@ -19,10 +19,10 @@ for line in sys.stdin:
 
 	if len(data) >= 3:
 		row = int(data[0])-1
-        col = int(data[1])-1
-        val = float(data[2])
+        	col = int(data[1])-1
+        	val = float(data[2])
 
-        key = '%s,%s' % (row/slice_size, col/slice_size)
-        value = '%s,%s,%s' % (row, col, val)
+        	key = '%s,%s' % (row/slice_size, col/slice_size)
+        	value = '%s,%s,%s' % (row, col, val)
 
-        print '%s\t%s' % (key, value)
+        	print '%s\t%s' % (key, value)
