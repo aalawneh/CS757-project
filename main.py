@@ -9,9 +9,10 @@ except:
     print "This implementation requires the numpy module."
     exit(0)
 	
-# this will differ by environment
-streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar"
-# streaming_jar = "/usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar"
+#this will differ by environment
+#streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar"
+streaming_jar = "/usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar"
+
 
 # different input files
 input_file = "proj/input/100K-ratings.dat"
@@ -116,6 +117,18 @@ def main():
 	# initial cost
 	os.system("cp w.arr wnew.arr")
 	os.system("cp h.arr hnew.arr")
+	
+	try:
+		os.system("hadoop fs -put w.arr proj/input")
+	except:
+		os.system("hadoop fs -rm proj/input/w.arr")
+		os.system("hadoop fs -put w.arr proj/input")
+	try:
+		os.system("hadoop fs -put h.arr proj/input")
+	except:
+		os.system("hadoop fs -rm proj/input/h.arr")
+		os.system("hadoop fs -put h.arr proj/input")
+
 	cost = calc_cost()
 
 	# Initial stepsizes
@@ -129,6 +142,9 @@ def main():
 		iter += 1;
 		print "Iteration %s" % iter
 		# ***** This is for W *****
+		print "# ************************ This is for W ************************"
+		print "# ************************ This is for W ************************"
+		print "# ************************ This is for W ************************"
 		isForW = True;
 
 		# Gradient for W
@@ -178,7 +194,11 @@ def main():
 		W = Wnew
 		np.savetxt('w.arr', W, '%.18e', delimter=' ')
 
-		# ***** This is for H *****
+		# ************************ This is for H ************************
+		print "# ************************ This is for H ************************"
+		print "# ************************ This is for H ************************"
+		print "# ************************ This is for H ************************"
+
 		isForW = False;
 
 		# Gradient for H
@@ -187,7 +207,7 @@ def main():
 		# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
 		os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 		
-		# save dW
+		# save dH
 		os.system("hadoop fs -get proj/output/part-00000")
 		os.system("mv part-00000 dH.arr")
 		
@@ -233,4 +253,3 @@ def main():
 			break
 if __name__ == "__main__":
     main()
-
