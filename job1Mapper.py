@@ -6,9 +6,9 @@
 import sys
 import re
 
-# Passing arguments isForW -mapper 'count_mapper.py arg1 arg2'
-# arg1 = sys.argv[1]
-isForW = True
+# Passing arguments isForW -mapper 'mapper.py arg1 arg2'
+if sys.argv[1] == "isForW":
+	isForW = True
 
 for line in sys.stdin:
 	if not line.strip(): 
@@ -20,9 +20,9 @@ for line in sys.stdin:
 	if len(data) >= 3:
 		userID, movieID, ratings, timestamp = data
 		if isForW:
-			key = movieID 
-			value = userID + ',' + ratings
+			key = int(userID) - 1
+			value = str(int(movieID) - 1) + ',' + ratings
 		else:
-			key = userID
-			value = movieID + ',' + ratings
+			key = int(movieID) - 1
+			value = str(int(userID) - 1) + ',' + ratings
 		print '%s\t%s' % (key, value)
