@@ -10,33 +10,33 @@ except:
     exit(0)
     
 def projfunc(s, k1, k2):
-    # this will be a mapreduce job later
-    n = len(s)
+	# this will be a mapreduce job later
+	n = len(s)
+
+	v = s + (k1-sum(s))/n
+
+	zerocoeff = []
     
-    v = s + (k1-sum(s))/n
-    
-    zerocoeff = []
-    
-    while True:
-        mid = np.ones(n)*k1/(n-len(zerocoeff))
-        mid[zerocoeff] = 0
-        w = v - mid
-        a = sum(np.square(w))
-        b = 2*np.dot(w,v)
-        c = sum(np.square(v))-k2
-        alphap = (-b+np.sqrt(b**2-4*a*c))/(2*a)
-        v = alphap*w + v
-        
-        if all(v>=0):
-            break
+	while True:
+		mid = np.ones(n)*k1/(n-len(zerocoeff))
+		mid[zerocoeff] = 0
+		w = v - mid
+		a = sum(np.square(w))
+		b = 2*np.dot(w,v)
+		c = sum(np.square(v))-k2
+		alphap = (-b+np.sqrt(b**2-4*a*c))/(2*a)
+		v = alphap*w + v
+
+		if all(v>=0):
+			break
             
-        zerocoeff = np.nonzero(v<=0)
-        v[zerocoeff] = 0
-        tempsum = sum(v)
-        v = v + (k1-tempsum)/(n-len(zerocoeff))
-        v[zerocoeff] = 0
-        
-    return v
+		zerocoeff = np.nonzero(v<=0)
+		v[zerocoeff] = 0
+		tempsum = sum(v)
+		v = v + (k1-tempsum)/(n-len(zerocoeff))
+		v[zerocoeff] = 0
+    
+	return v
 
 def main():
 	try:
@@ -59,15 +59,22 @@ def main():
 	vdim = 943 
 	# len(input[0]) The number of columns in V - For Faces dataset it is 2429
 	samples = 1682 
-	
-	# 943 x 1682 = 1586126	
+	# sparseness constraints for W and H
+	sW = 0.8
+	sH = 0.8
 
 	# Create initial matrices: 
 	# vdim-by-rdim matrix of normally distributed random numbers.
 	W = abs(np.random.randn(vdim,rdim))
 	# rdim-by-samples matrix of normally distributed random numbers.
 	H = abs(np.random.randn(rdim,samples))
-	H=np.divide(H,np.dot(np.sum(np.square(H),1).reshape(rdim,1),np.ones((1,samples))))
+	H = np.divide(H,np.dot(np.sum(np.square(H),1).reshape(rdim,1),np.ones((1,samples))))
+	L1a = np.sqrt(vdim)-(np.sqrt(vdim)-1)*sW
+	L1s = np.sqrt(samples)-(np.sqrt(samples)-1)*sH
+	for i in range(0,rdim):
+		W[:,i] = projfunc(W[:,i],L1a,1)
+		H[i,:] = projfunc(H[i,:],L1s,1)
+        
 	
 	# Save W and H to a file
 	np.savetxt('w.arr', W, '%.18e', delimiter=' ')
@@ -89,7 +96,7 @@ def main():
 		# Map/Reduce Job 1
                 # ####  Maper: send one V row to the reducer
 		# ####  Reducer: calculate the gradient dW = (W*H-V)*H'
-		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'job1Mapper.py isForW' -reducer 'job1Reducer.py isForW'  -file job1Mapper.py -file job1Reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 		
 		# save dW
 		os.system("hadoop fs -get proj/output/part-00000")
@@ -104,16 +111,23 @@ def main():
 			dW[index,:] = vector
 
 		# clean up
-		os.system("hadoop fs -rm proj/output/*")
+		os.system("hadoop fs -rm -r proj/output/*")
 
 		while True:
 			# Update W --> Wnew = W- stepsize * dW
-			W = np.subtract(W, dW)
-			np.savetxt('w.arr', W, '%.18e', delimiter=' ')
-			# do the projection
+			Wnew = np.subtract(W, stepsizeW*dW)
+			np.savetxt('wnew.arr', Wnew, '%.18e', delimiter=' ')
 			
+			# do the projection
+			for i in range(0,rdim):
+				W[:,i] = projfunc(W[:,i],L1a,1)
+				
 			# calculate the cost
-
+			
+		#increase step size for next iteration
+		stepsizeW = stepsizeW*1.2
+		W = Wnew
+		np.savetxt('w.arr', W, '%.18e', delimter=' ')
 
 		# ***** This is for H *****
 		isForW = False;
@@ -122,7 +136,7 @@ def main():
 		# Map/Reduce Job 1
                 # ####  Maper: send one V column to the reducer
 		# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
-		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'job1Mapper.py isForH' -reducer 'job1Reducer.py isForH'  -file job1Mapper.py -file job1Reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 		
 		# save dW
 		os.system("hadoop fs -get proj/output/part-00000")
@@ -137,16 +151,24 @@ def main():
 			dH[:,index] = vector
 
 		# clean up
-		os.system("hadoop fs -rm proj/output/*")
+		os.system("hadoop fs -rm -r proj/output/*")
 
 		while True:
 			# Update H --> Hnew = H- stepsize * dH
-			H = np.subtract(H, dH)
-			np.savetxt('h.arr', H, '%.18e', delimiter=' ')
+			Hnew = np.subtract(H, stepsizeH*dH)
+			np.savetxt('hnew.arr', Hnew, '%.18e', delimiter=' ')
 			
 			# do the projection
+			for i in range(0,rdim):
+				H[i,:] = projfunc(H[i,:],L1s,1)
 			
 			# calculate the cost
+			
+		#increase step size for next iteration
+		stepsizeH = stepsizeH*1.2
+		H = Hnew
+		np.savetxt('h.arr', H, '%.18e', delimter=' ')
+
 
 		if iter > 50: # When to break
 			break
