@@ -1,14 +1,42 @@
 #!/usr/bin/env python
 
 import sys
-import numpy
 import os
 
 try:
-    import numpy
+    import numpy as np
 except:
     print "This implementation requires the numpy module."
     exit(0)
+    
+def projfunc(s, k1, k2):
+    # this will be a mapreduce job later
+    n = len(s)
+    
+    v = s + (k1-sum(s))/n
+    
+    zerocoeff = []
+    
+    while True:
+        mid = np.ones(n)*k1/(n-len(zerocoeff))
+        mid[zerocoeff] = 0
+        w = v - mid
+        a = sum(np.square(w))
+        b = 2*np.dot(w,v)
+        c = sum(np.square(v))-k2
+        alphap = (-b+np.sqrt(b**2-4*a*c))/(2*a)
+        v = alphap*w + v
+        
+        if all(v>=0):
+            break
+            
+        zerocoeff = np.nonzero(v<=0)
+        v[zerocoeff] = 0
+        tempsum = sum(v)
+        v = v + (k1-tempsum)/(n-len(zerocoeff))
+        v[zerocoeff] = 0
+        
+    return v
 
 def main():
 	try:
@@ -36,13 +64,14 @@ def main():
 
 	# Create initial matrices: 
 	# vdim-by-rdim matrix of normally distributed random numbers.
-	W = abs(numpy.random.rand(vdim,rdim))
+	W = abs(np.random.randn(vdim,rdim))
 	# rdim-by-samples matrix of normally distributed random numbers.
-	H = abs(numpy.random.rand(rdim,samples))
+	H = abs(np.random.randn(rdim,samples))
+	H=np.divide(H,np.dot(np.sum(np.square(H),1).reshape(rdim,1),np.ones((1,samples))))
 	
 	# Save W and H to a file
-	numpy.savetxt('w.arr', W, '%.18e', delimiter=' ')
-	numpy.savetxt('h.arr', H, '%.18e', delimiter=' ')
+	np.savetxt('w.arr', W, '%.18e', delimiter=' ')
+	np.savetxt('h.arr', H, '%.18e', delimiter=' ')
 
 	# Initial stepsizes
 	stepsizeW = 1;
@@ -66,7 +95,7 @@ def main():
 		os.system("hadoop fs -get proj/output/part-00000")
 		os.system("mv part-00000 dW.arr")
 
-		dW = numpy.zeros((vdim,rdim))
+		dW = np.zeros((vdim,rdim))
 		wFile = open ( 'dW.arr' , 'r')
 		for line in wFile:
 			data = line.split('\t', 1)
@@ -79,8 +108,8 @@ def main():
 
 		while True:
 			# Update W --> Wnew = W- stepsize * dW
-			W = numpy.subtract(W, dW)
-			numpy.savetxt('w.arr', W, '%.18e', delimiter=' ')
+			W = np.subtract(W, dW)
+			np.savetxt('w.arr', W, '%.18e', delimiter=' ')
 			# do the projection
 			
 			# calculate the cost
@@ -99,7 +128,7 @@ def main():
 		os.system("hadoop fs -get proj/output/part-00000")
 		os.system("mv part-00000 dH.arr")
 		
-		dH = numpy.zeros((rdim,samples))
+		dH = np.zeros((rdim,samples))
 		wFile = open ( 'dH.arr' , 'r')
 		for line in wFile:
 			data = line.split('\t', 1)
@@ -112,8 +141,8 @@ def main():
 
 		while True:
 			# Update H --> Hnew = H- stepsize * dH
-			H = numpy.subtract(H, dH)
-			numpy.savetxt('h.arr', H, '%.18e', delimiter=' ')
+			H = np.subtract(H, dH)
+			np.savetxt('h.arr', H, '%.18e', delimiter=' ')
 			
 			# do the projection
 			
