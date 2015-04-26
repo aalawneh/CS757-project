@@ -169,7 +169,7 @@ def main():
 				break
 				
 			stepsizeW = stepsizeW/2
-			if stepsizeW < epsilon and stepsizeH < epsilon:
+			if stepsizeW < epsilon:
 				print "Algorithm converged. RMSE: %s" % cost
 				return
 			
@@ -219,7 +219,7 @@ def main():
 				break
 				
 			stepsizeW = stepsizeW/2
-			if stepsizeW < epsilon and stepsizeH < epsilon:
+			if stepsizeH < epsilon:
 				print "Algorithm converged. RMSE: %s" % cost
 				return
 			
