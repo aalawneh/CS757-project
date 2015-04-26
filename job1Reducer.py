@@ -19,27 +19,28 @@ def read_input(file):
         yield line.split()
 
 def main(separator='\t'):
+
 	oldKey = None
+
 	vVector = []
 	if isForW == True:
-		# vRow
-		vVector = [0]*1682 
+		vVector = [0]*943 # column		
 	else:
-		# vColumn		
-		vVector = [0]*943
+		vVector = [0]*1682 # row
+		
 	line = read_input(sys.stdin)
 	for line in sys.stdin:
 
 		data_mapped = line.strip().split('\t')
 		thisKey, value_data = data_mapped
 
-		if thisKey:					 
+		if thisKey:		
 			if oldKey and oldKey != thisKey:
-				vVector = []
-				if isForW == True:
-					vVector = [0]*943 # row
+				if isForW == True:					
+					vVector = [0]*943 # column
 				else:
-					vVector = [0]*1682  # column
+					vVector = [0]*1682 # row
+					
 				# here we should calculate the gradiant for user ID x
 				computeGradiant(oldKey, vVector)
 	
@@ -67,16 +68,10 @@ def computeGradiant(theIndex, vVector):
 		colH = hArr[:,index]
 	
 		# dH for column(index)
-		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))
-		print numpy.subtract(numpy.dot(W,colH), vVector)
+        	dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))
+		print dH
 	else:
 		# dW = (W*H-V)*H'
-		#HTrans = (numpy.matrix(H)).transpose()
-		#wArr = numpy.array(W)
-		#rowW = wArr[index,:]
-
-		# dH for row(index)
-		#dW = numpy.dot(numpy.subtract(numpy.dot(W,rowW), vVector), HTrans)
 		print ""
 	
 if __name__ == "__main__":
