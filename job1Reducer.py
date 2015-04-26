@@ -41,7 +41,7 @@ def main(separator='\t'):
 		
 				oldColumn = thisColumn
 				row, value = value_data.split(',')
-				vColumn[int(row)] = value 
+				vColumn[int(row)] = float(value)
 
 		# do not forget to compute gradiant for the last row
 		if thisColumn != None:
@@ -67,15 +67,11 @@ def main(separator='\t'):
 		
 				oldRow = thisRow
 				col, value = value_data.split(',')
-				vRow[int(col)] = value 
+				vRow[int(col)] = float(value)
 
 		# do not forget to compute gradiant for the last row
 		if thisRow != None:
 			computeGradiant(oldRow, vRow)
-
-
-
-
 
 
 def computeGradiant(theIndex, vVector):
@@ -84,21 +80,21 @@ def computeGradiant(theIndex, vVector):
 
 		index = int(theIndex)
 
-		WTrans = (numpy.array(W)).transpose()
-
-		colH = H[:,index]
+		WTrans = (numpy.matrix(W)).transpose()
+		hArr = numpy.array(H)
+		colH = hArr[:,index]
 	
 		# dH for column(index)
-		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))
-		print WTrans
+        	dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))
+		print dH
 	else:
 		print ""
 	
 if __name__ == "__main__":
 	wf = open ( 'w.arr' , 'r')
-	W = [ map(float,line.split(' ')) for line in wf ]
+	W = [ map(float,line.split()) for line in wf ]
 
 	hf = open ( 'h.arr' , 'r')
-	H = [ map(float,line.split(' ')) for line in hf ]
+	H = [ map(float,line.split()) for line in hf ]
 
 	main()
