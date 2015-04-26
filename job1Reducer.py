@@ -67,12 +67,17 @@ def computeGradiant(theIndex, vVector):
 		hArr = numpy.array(H)
 		colH = hArr[:,index]
 	
-		# dH for column(index)
-        	dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))
+		# we need W and column of H
+		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))        	
 		print dH
 	else:
 		# dW = (W*H-V)*H'
-		print ""
+		HTrans = (numpy.matrix(H)).transpose()
+		wArr = numpy.array(W)
+		rowW = wArr[index,:]
+		# we need H and row of W
+		dW = numpy.dot(numpy.subtract(numpy.dot(rowW, H), vVector), HTrans)
+		print "" 
 	
 if __name__ == "__main__":
 	wf = open ( 'w.arr' , 'r')
