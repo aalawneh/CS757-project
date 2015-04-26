@@ -30,7 +30,7 @@ def main():
 	W = abs(numpy.random.rand(vdim,rdim))
 	# rdim-by-samples matrix of normally distributed random numbers.
 	H = abs(numpy.random.rand(rdim,samples))
-
+	
 	# Save W and H to a file
 	numpy.savetxt('w.arr', W, '%.18e', delimiter=' ')
 	numpy.savetxt('h.arr', H, '%.18e', delimiter=' ')
@@ -43,18 +43,55 @@ def main():
 	iter = 0;
 
 	while True:
+		# ***** This is for W *****
+		isForW = True;
+
+		# Gradient for W
+		# Map/Reduce Job 1
+                # ####  Maper: send one V row to the reducer
+		# ####  Reducer: calculate the gradient dW = (W*H-V)*H'
+		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'job1Mapper.py isForW' -reducer 'job1Reducer.py isForW'  -file job1Mapper.py -file job1Reducer.py")
+		
+		# save dW
+		os.system("hadoop fs -get proj/output/part-00000")
+		os.system("mv part-00000 dW")
+		
+		# clean up
+		os.system("hadoop fs -rm proj/output/*")
+
+		while True:
+			# Update W --> Wnew = W-dW
+			W = numpy.subtract(W, dW)
+			# do the projection
+			
+			# calculate the cost
+
+
 		# ***** This is for H *****
-		isForH = True;
+		isForW = False;
 
 		# Gradient for H
 		# Map/Reduce Job 1
-                # ####  Maper: send one V row to the reducer
+                # ####  Maper: send one V column to the reducer
 		# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
-		#os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/V.arr -output proj/output/ -mapper mapper-1.py -reducer reducer-1.py  -file mapper-1.py -file reducer-1.py")
+		os.system("hadoop jar /usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar  -input proj/input/100K-ratings.dat -output proj/output/ -mapper 'job1Mapper.py isForW' -reducer 'job1Reducer.py isForW'  -file job1Mapper.py -file job1Reducer.py")
 		
+		# save dW
+		os.system("hadoop fs -get proj/output/part-00000")
+		os.system("mv part-00000 dH")
+		
+		# clean up
+		os.system("hadoop fs -rm proj/output/*")
+
+		while True:
+			# Update H --> Hnew = H-dH
+			H = numpy.subtract(H, dH)
+			# do the projection
+			
+			# calculate the cost
+
 		if True: # When to break
 			break
-
 if __name__ == "__main__":
     main()
 
