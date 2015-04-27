@@ -132,8 +132,8 @@ def main():
 	cost = calc_cost()
 
 	# Initial stepsizes
-	stepsizeW = 1;
-	stepsizeH = 1;
+	stepsizeW = 1.0;
+	stepsizeH = 1.0;
 
 	# Start iteration
 	iter = 0;
@@ -171,11 +171,12 @@ def main():
 		while True:
 			# Update W --> Wnew = W- stepsize * dW
 			Wnew = np.subtract(W, stepsizeW*dW)
-			np.savetxt('wnew.arr', Wnew, '%.18e', delimiter=' ')
-			
+						
 			# do the projection
 			for i in range(0,rdim):
-				W[:,i] = projfunc(W[:,i],L1a,1)
+				Wnew[:,i] = projfunc(Wnew[:,i],L1a,1)
+
+			np.savetxt('wnew.arr', Wnew, '%.18e', delimiter=' ')
 				
 			# calculate the cost
 			new_cost = calc_cost()
@@ -193,6 +194,9 @@ def main():
 		stepsizeW = stepsizeW*1.2
 		W = Wnew
 		np.savetxt('w.arr', W, '%.18e', delimter=' ')
+		
+		os.system("hadoop fs -rm proj/input/w.arr")
+		os.system("hadoop fs -put w.arr proj/input")
 
 		# ************************ This is for H ************************
 		print "# ************************ This is for H ************************"
@@ -225,12 +229,14 @@ def main():
 		while True:
 			# Update H --> Hnew = H- stepsize * dH
 			Hnew = np.subtract(H, stepsizeH*dH)
-			np.savetxt('hnew.arr', Hnew, '%.18e', delimiter=' ')
+			
 			
 			# do the projection
 			for i in range(0,rdim):
-				H[i,:] = projfunc(H[i,:],L1s,1)
+				Hnew[i,:] = projfunc(Hnew[i,:],L1s,1)
 			
+			np.savetxt('hnew.arr', Hnew, '%.18e', delimiter=' ')			
+
 			# calculate the cost
 			new_cost = calc_cost()
 			
@@ -248,6 +254,8 @@ def main():
 		H = Hnew
 		np.savetxt('h.arr', H, '%.18e', delimter=' ')
 
+		os.system("hadoop fs -rm proj/input/h.arr")
+		os.system("hadoop fs -put h.arr proj/input")
 
 		if iter > 50: # When to break
 			break
