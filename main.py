@@ -92,8 +92,8 @@ def main():
 	# len(input[0]) The number of columns in V - For Faces dataset it is 2429
 	samples = 1682 
 	# sparseness constraints for W and H
-	sW = 0.8
-	sH = 0.8
+	sW = 0.4
+	sH = 0.4
 	# epsilon value for convergence detection
 	epsilon = 1e-10
 
