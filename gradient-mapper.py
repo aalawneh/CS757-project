@@ -7,6 +7,7 @@ import sys
 import re
 
 # Passing arguments isForW -mapper 'mapper.py arg1 arg2'
+isForW = False
 if sys.argv[1] == "isForW":
 	isForW = True
 
