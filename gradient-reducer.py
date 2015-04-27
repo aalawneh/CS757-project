@@ -6,7 +6,8 @@
 import sys
 import numpy
 
-# Passing arguments isForW -mapper 'mapper.py arg1 arg2'  
+# Passing arguments isForW -mapper 'mapper.py arg1 arg2' 
+isForW = False
 if sys.argv[1] == "isForW":
 	isForW = True
 
@@ -36,13 +37,13 @@ def main(separator='\t'):
 
 		if thisKey:		
 			if oldKey and oldKey != thisKey:
+				# here we should calculate the gradiant for user ID x
+				computeGradiant(oldKey, vVector)
+				
 				if isForW == True:					
 					vVector = [0]*1682 # row
 				else:
 					vVector = [0]*943 # column					
-					
-				# here we should calculate the gradiant for user ID x
-				computeGradiant(oldKey, vVector)
 	
 			oldKey = thisKey
 			index, value = value_data.split(',')
@@ -71,7 +72,7 @@ def computeGradiant(theIndex, vVector):
 		colH = hArr[:,index]
 	
 		# we need W and column of H
-		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))        	
+		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))   
 		print '%s\t%s' % (index, ",".join(map(str, dH)))   
 	
 if __name__ == "__main__":
