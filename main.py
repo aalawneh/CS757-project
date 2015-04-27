@@ -193,7 +193,7 @@ def main():
 		#increase step size for next iteration
 		stepsizeW = stepsizeW*1.2
 		W = Wnew
-		np.savetxt('w.arr', W, '%.18e', delimter=' ')
+		np.savetxt('w.arr', W, '%.18e', delimiter=' ')
 		
 		os.system("hadoop fs -rm proj/input/w.arr")
 		os.system("hadoop fs -put w.arr proj/input")
@@ -244,7 +244,7 @@ def main():
 				cost = new_cost
 				break
 				
-			stepsizeW = stepsizeW/2
+			stepsizeH = stepsizeH/2
 			if stepsizeH < epsilon:
 				print "Algorithm converged. RMSE: %s" % cost
 				return
@@ -252,7 +252,7 @@ def main():
 		#increase step size for next iteration
 		stepsizeH = stepsizeH*1.2
 		H = Hnew
-		np.savetxt('h.arr', H, '%.18e', delimter=' ')
+		np.savetxt('h.arr', H, '%.18e', delimiter=' ')
 
 		os.system("hadoop fs -rm proj/input/h.arr")
 		os.system("hadoop fs -put h.arr proj/input")
