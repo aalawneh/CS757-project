@@ -25,9 +25,10 @@ def main(separator='\t'):
 
 	vVector = []
 	if isForW == True:
-		vVector = [0]*1682 # row		
+		vVector = numpy.zeros(1682) # row
 	else:
-		vVector = [0]*943 # column
+		vVector = numpy.zeros(943) # column
+	vVector = vVector - 2
 		
 	line = read_input(sys.stdin)
 	for line in sys.stdin:
@@ -41,9 +42,10 @@ def main(separator='\t'):
 				computeGradiant(oldKey, vVector)
 
 				if isForW == True:					
-					vVector = [0]*1682 # row
+					vVector = numpy.zeros(1682) # row
 				else:
-					vVector = [0]*943 # column					
+					vVector = numpy.zeros(943) # column
+				vVector = vVector - 2
 					
 	
 			oldKey = thisKey
@@ -64,7 +66,9 @@ def computeGradiant(theIndex, vVector):
 		wArr = numpy.array(W)
 		rowW = wArr[index,:]
 		# we need H and row of W
-		dW = numpy.dot(numpy.subtract(numpy.dot(rowW, H), vVector), HTrans)
+		tmp = numpy.subtract(numpy.dot(rowW,H),vVector)
+		tmp[numpy.nonzero(vVector==0)]=0
+		dW = numpy.dot(tmp, HTrans)
 		print '%s\t%s' % (index, ",".join(map(str, dW)))
 	else: 
 		# dH = W'*(W*H-V);
@@ -73,7 +77,9 @@ def computeGradiant(theIndex, vVector):
 		colH = hArr[:,index]
 	
 		# we need W and column of H
-		dH = numpy.dot(WTrans, numpy.subtract(numpy.dot(W,colH), vVector))        	
+		tmp = numpy.subtract(numpy.dot(W,colH), vVector)
+		tmp[numpy.nonzero(vVector<-1)]=0
+		dH = numpy.dot(WTrans, tmp)
 		print '%s\t%s' % (index, ",".join(map(str, dH)))   
 	
 if __name__ == "__main__":

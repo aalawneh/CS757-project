@@ -18,6 +18,7 @@ streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/h
 input_file = "proj/input/100K-ratings.dat"
 
 def projfunc(s, k1, k2):
+	return s
 	# this will be a mapreduce job later
 	n = len(s)
 
@@ -92,17 +93,19 @@ def main():
 	# len(input[0]) The number of columns in V - For Faces dataset it is 2429
 	samples = 1682 
 	# sparseness constraints for W and H
-	sW = 0.4
-	sH = None
+	sW = 0.01
+	sH = 0.01
 	# epsilon value for convergence detection
-	epsilon = 1e-10
+	epsilon = 1e-12
+	W_converged = False
+	H_converged = False
 
 	# Create initial matrices: 
 	# vdim-by-rdim matrix of normally distributed random numbers.
-	W = abs(np.random.randn(vdim,rdim))
+	W = np.random.randn(vdim,rdim)
 	# rdim-by-samples matrix of normally distributed random numbers.
-	H = abs(np.random.randn(rdim,samples))
-	H = np.divide(H,np.dot(np.sum(np.square(H),1).reshape(rdim,1),np.ones((1,samples))))
+	H = np.random.randn(rdim,samples)
+	#H = np.divide(H,np.dot(np.sum(np.square(H),1).reshape(rdim,1),np.ones((1,samples))))
 	if sW != None:
 		L1a = np.sqrt(vdim)-(np.sqrt(vdim)-1)*sW
 		for i in range(0,rdim):
@@ -135,8 +138,8 @@ def main():
 	cost = calc_cost()
 
 	# Initial stepsizes
-	stepsizeW = 1.0;
-	stepsizeH = 1.0;
+	stepsizeW = 0.1;
+	stepsizeH = 0.1;
 
 	# Start iteration
 	iter = 0;
@@ -145,175 +148,181 @@ def main():
 		iter += 1;
 		print "Iteration %s" % iter
 		
-		if sW != None:
-			# ***** This is for W *****
-			print "# ************************ This is for W ************************"
-			print "# ************************ This is for W ************************"
-			print "# ************************ This is for W ************************"
-			isForW = True;
+		if W_converged == False:
+			if sW != None:
+				# ***** This is for W *****
+				print "# ************************ This is for W ************************"
+				print "# ************************ This is for W ************************"
+				print "# ************************ This is for W ************************"
+				isForW = True;
 
-			# Gradient for W
-			# Map/Reduce Job 1
-			# ####  Mapper: send one V row to the reducer
-			# ####  Reducer: calculate the gradient dW = (W*H-V)*H'
-			os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+				# Gradient for W
+				# Map/Reduce Job 1
+				# ####  Mapper: send one V row to the reducer
+				# ####  Reducer: calculate the gradient dW = (W*H-V)*H'
+				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
-			# save dW
-			os.system("hadoop fs -get proj/output/part-00000")
-			os.system("mv part-00000 dW.arr")
+				# save dW
+				os.system("hadoop fs -get proj/output/part-00000")
+				os.system("mv part-00000 dW.arr")
 
-			dW = np.zeros((vdim,rdim))
-			wFile = open ( 'dW.arr' , 'r')
-			for line in wFile:
-				data = line.split('\t', 1)
-				index, vector = data
-				vector = vector.split(',')
-				dW[index,:] = vector
+				dW = np.zeros((vdim,rdim))
+				wFile = open ( 'dW.arr' , 'r')
+				for line in wFile:
+					data = line.split('\t', 1)
+					index, vector = data
+					vector = vector.split(',')
+					dW[index,:] = vector
 
-			# clean up
-			os.system("hadoop fs -rm -r proj/output/")
+				# clean up
+				os.system("hadoop fs -rm -r proj/output/")
 
-			while True:
-				# Update W --> Wnew = W- stepsize * dW
-				Wnew = np.subtract(W, stepsizeW*dW)
+				while True:
+					# Update W --> Wnew = W- stepsize * dW
+					Wnew = np.subtract(W, stepsizeW*dW)
 
-				# do the projection
-				for i in range(0,rdim):
-					Wnew[:,i] = projfunc(Wnew[:,i],L1a,1)
+					# do the projection
+					for i in range(0,rdim):
+						Wnew[:,i] = projfunc(Wnew[:,i],L1a,1)
 
-				np.savetxt('wnew.arr', Wnew, '%.18e', delimiter=' ')
+					np.savetxt('wnew.arr', Wnew, '%.18e', delimiter=' ')
 
-				# calculate the cost
-				new_cost = calc_cost()
+					# calculate the cost
+					new_cost = calc_cost()
 
-				if new_cost < cost:
-					cost = new_cost
-					break
+					if new_cost < cost:
+						cost = new_cost
+						break
 
-				stepsizeW = stepsizeW/2
-				if stepsizeW < epsilon:
-					print "Algorithm converged. RMSE: %s" % cost
-					return
+					stepsizeW = stepsizeW/2
+					if stepsizeW < epsilon:
+						print "W converged. RMSE: %s" % cost
+						W_converged = True
+						if H_converged:
+							return
 
-			#increase step size for next iteration
-			stepsizeW = stepsizeW*1.2
-			W = Wnew
-			
-		else:
-			os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'nonsparseupdate-mapper.py isForW' -reducer 'nonsparseupdate-reducer.py isForW'  -file nonsparseupdate-mapper.py -file nonsparseupdate-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+				#increase step size for next iteration
+				stepsizeW = stepsizeW*1.2
+				W = Wnew
 
-			# save dW
-			os.system("hadoop fs -get proj/output/part-00000")
+			else:
+				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'nonsparseupdate-mapper.py isForW' -reducer 'nonsparseupdate-reducer.py isForW'  -file nonsparseupdate-mapper.py -file nonsparseupdate-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
-			wFile = open ( 'part-00000' , 'r')
-			for line in wFile:
-				data = line.split('\t', 1)
-				index, vector = data
-				vector = vector.split(',')
-				W[index,:] = vector
+				# save dW
+				os.system("hadoop fs -get proj/output/part-00000")
 
-			# clean up
-			os.system("rm part-00000")
-			os.system("hadoop fs -rm -r proj/output/")
+				wFile = open ( 'part-00000' , 'r')
+				for line in wFile:
+					data = line.split('\t', 1)
+					index, vector = data
+					vector = vector.split(',')
+					W[index,:] = vector
 
-			# display current cost
-			np.savetxt('wnew.arr', W, '%.18e', delimiter=' ')
-			cost = calc_cost()
+				# clean up
+				os.system("rm part-00000")
+				os.system("hadoop fs -rm -r proj/output/")
 
-		np.savetxt('w.arr', W, '%.18e', delimiter=' ')
-		os.system("hadoop fs -rm proj/input/w.arr")
-		os.system("hadoop fs -put w.arr proj/input")
+				# display current cost
+				np.savetxt('wnew.arr', W, '%.18e', delimiter=' ')
+				cost = calc_cost()
 
-		if sH != None:
-			# ************************ This is for H ************************
-			print "# ************************ This is for H ************************"
-			print "# ************************ This is for H ************************"
-			print "# ************************ This is for H ************************"
-
-			isForW = False;
-
-			# Gradient for H
-			# Map/Reduce Job 1
-			# ####  Mapper: send one V column to the reducer
-			# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
-			os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
-
-			# save dH
-			os.system("hadoop fs -get proj/output/part-00000")
-			os.system("mv part-00000 dH.arr")
-
-			dH = np.zeros((rdim,samples))
-			wFile = open ( 'dH.arr' , 'r')
-			for line in wFile:
-				data = line.split('\t', 1)
-				index, vector = data
-				vector = vector.split(',')
-				dH[:,index] = vector
-
-			# clean up
-			os.system("hadoop fs -rm -r proj/output/")
-
-			while True:
-				# Update H --> Hnew = H- stepsize * dH
-				Hnew = np.subtract(H, stepsizeH*dH)
-
-
-				# do the projection
-				for i in range(0,rdim):
-					Hnew[i,:] = projfunc(Hnew[i,:],L1s,1)
-
-				np.savetxt('hnew.arr', Hnew, '%.18e', delimiter=' ')
-
-				# calculate the cost
-				new_cost = calc_cost()
-
-				if new_cost < cost:
-					cost = new_cost
-					break
-
-				stepsizeH = stepsizeH/2
-				if stepsizeH < epsilon:
-					print "Algorithm converged. RMSE: %s" % cost
-					return
-
-			#increase step size for next iteration
-			stepsizeH = stepsizeH*1.2
-			H = Hnew
-
-		else:
-			os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'nonsparseupdate-mapper.py isForW' -reducer 'nonsparseupdate-reducer.py isForW'  -file nonsparseupdate-mapper.py -file nonsparseupdate-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
-
-			# save dW
-			os.system("hadoop fs -get proj/output/part-00000")
-
-			hFile = open ( 'part-00000' , 'r')
-			for line in hFile:
-				data = line.split('\t', 1)
-				index, vector = data
-				vector = vector.split(',')
-				H[:,index] = vector
-
-			# clean up
-			os.system("rm part-00000")
-			os.system("hadoop fs -rm -r proj/output/")
-
-			# display current cost
-			np.savetxt('hnew.arr', H, '%.18e', delimiter=' ')
-			cost = calc_cost()
-
-			# renormalize
-			norms = np.sqrt(sum(np.square(H.transpose()))).reshape(rdim,1)
-			H = np.divide(H,np.dot(norms,np.ones((1,samples))))
-			W = np.multiply(W,np.dot(np.ones((vdim,1)),norms.transpose()))
-			np.savetxt('h.arr', H, '%.18e', delimiter=' ')
 			np.savetxt('w.arr', W, '%.18e', delimiter=' ')
+			os.system("hadoop fs -rm proj/input/w.arr")
+			os.system("hadoop fs -put w.arr proj/input")
 
-		os.system("hadoop fs -rm proj/input/h.arr")
-		os.system("hadoop fs -put h.arr proj/input")
-		os.system("hadoop fs -rm proj/input/w.arr")
-		os.system("hadoop fs -put w.arr proj/input")
+		if H_converged == False:
+			if sH != None:
+				# ************************ This is for H ************************
+				print "# ************************ This is for H ************************"
+				print "# ************************ This is for H ************************"
+				print "# ************************ This is for H ************************"
 
-		if iter > 9: # When to break
+				isForW = False;
+
+				# Gradient for H
+				# Map/Reduce Job 1
+				# ####  Mapper: send one V column to the reducer
+				# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
+				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+
+				# save dH
+				os.system("hadoop fs -get proj/output/part-00000")
+				os.system("mv part-00000 dH.arr")
+
+				dH = np.zeros((rdim,samples))
+				wFile = open ( 'dH.arr' , 'r')
+				for line in wFile:
+					data = line.split('\t', 1)
+					index, vector = data
+					vector = vector.split(',')
+					dH[:,index] = vector
+
+				# clean up
+				os.system("hadoop fs -rm -r proj/output/")
+
+				while True:
+					# Update H --> Hnew = H- stepsize * dH
+					Hnew = np.subtract(H, stepsizeH*dH)
+
+
+					# do the projection
+					for i in range(0,rdim):
+						Hnew[i,:] = projfunc(Hnew[i,:],L1s,1)
+
+					np.savetxt('hnew.arr', Hnew, '%.18e', delimiter=' ')
+
+					# calculate the cost
+					new_cost = calc_cost()
+
+					if new_cost < cost:
+						cost = new_cost
+						break
+
+					stepsizeH = stepsizeH/2
+					if stepsizeH < epsilon:
+						print "H converged. RMSE: %s" % cost
+						H_converged = true
+						if W_converged:
+							return
+
+				#increase step size for next iteration
+				stepsizeH = stepsizeH*1.2
+				H = Hnew
+
+			else:
+				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'nonsparseupdate-mapper.py isForW' -reducer 'nonsparseupdate-reducer.py isForW'  -file nonsparseupdate-mapper.py -file nonsparseupdate-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+
+				# save dW
+				os.system("hadoop fs -get proj/output/part-00000")
+
+				hFile = open ( 'part-00000' , 'r')
+				for line in hFile:
+					data = line.split('\t', 1)
+					index, vector = data
+					vector = vector.split(',')
+					H[:,index] = vector
+
+				# clean up
+				os.system("rm part-00000")
+				os.system("hadoop fs -rm -r proj/output/")
+
+				# display current cost
+				np.savetxt('hnew.arr', H, '%.18e', delimiter=' ')
+				cost = calc_cost()
+
+				# renormalize
+				norms = np.sqrt(sum(np.square(H.transpose()))).reshape(rdim,1)
+				H = np.divide(H,np.dot(norms,np.ones((1,samples))))
+				W = np.multiply(W,np.dot(np.ones((vdim,1)),norms.transpose()))
+				np.savetxt('h.arr', H, '%.18e', delimiter=' ')
+				np.savetxt('w.arr', W, '%.18e', delimiter=' ')
+
+			os.system("hadoop fs -rm proj/input/h.arr")
+			os.system("hadoop fs -put h.arr proj/input")
+			os.system("hadoop fs -rm proj/input/w.arr")
+			os.system("hadoop fs -put w.arr proj/input")
+
+		if iter > 14: # When to break
 			break
 if __name__ == "__main__":
     main()

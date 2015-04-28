@@ -22,8 +22,8 @@ for line in sys.stdin:
 		userID, movieID, ratings, timestamp = data
 		if isForW:
 			key = int(userID) - 1
-			value = str(int(movieID) - 1) + ',' + str(float(ratings)/5.0)
+			value = str(int(movieID) - 1) + ',' + str((float(ratings)-3)/2.0)
 		else:
 			key = int(movieID) - 1
-			value = str(int(userID) - 1) + ',' + str(float(ratings)/5.0)
+			value = str(int(userID) - 1) + ',' + str((float(ratings)-3)/2.0)
 		print '%s\t%s' % (key, value)
