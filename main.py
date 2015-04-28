@@ -49,7 +49,7 @@ def projfunc(s, k1, k2):
 def calc_cost():
 	os.system("hadoop fs -put hnew.arr proj/input")
 	os.system("hadoop fs -put wnew.arr proj/input")
-	os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'cost-mapper.py 1000' -reducer 'cost-reducer.py'  -file cost-mapper.py -file cost-reducer.py  -cacheFile proj/input/wnew.arr#w.arr -cacheFile proj/input/hnew.arr#h.arr")
+	os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'cost-mapper.py 1000' -reducer 'cost-reducer.py'  -file cost-mapper.py -file cost-reducer.py  -cacheFile proj/input/wnew.arr#wnew.arr -cacheFile proj/input/hnew.arr#hnew.arr")
 
 	os.system("hadoop fs -get proj/output/part-00000")
 	os.system("hadoop fs -rm -r proj/output")

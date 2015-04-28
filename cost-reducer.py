@@ -28,11 +28,11 @@ def main():
 	
 if __name__ == "__main__":
     # later we will be passed bits of W and H from the mapper
-    wf = open ( 'w.arr' , 'r')
+    wf = open ( 'wnew.arr' , 'r')
     W = [ map(float,line.split(' ')) for line in wf ]
     W = np.array(W)
 
-    hf = open ( 'h.arr' , 'r')
+    hf = open ( 'hnew.arr' , 'r')
     H = [ map(float,line.split(' ')) for line in hf ]
     H = np.array(H)
 
