@@ -96,7 +96,7 @@ def main():
 	sW = 0.01
 	sH = 0.01
 	# epsilon value for convergence detection
-	epsilon = 1e-12
+	epsilon = 1e-8
 	W_converged = False
 	H_converged = False
 
