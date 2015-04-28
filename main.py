@@ -96,7 +96,7 @@ def main():
 	sW = 0.01
 	sH = 0.01
 	# epsilon value for convergence detection
-	epsilon = 1e-8
+	epsilon = 1e-5
 	W_converged = False
 	H_converged = False
 
@@ -200,6 +200,8 @@ def main():
 						W_converged = True
 						if H_converged:
 							return
+						else:
+							break
 
 				#increase step size for next iteration
 				stepsizeW = stepsizeW*1.2
@@ -284,6 +286,8 @@ def main():
 						H_converged = True
 						if W_converged:
 							return
+						else:
+							break
 
 				#increase step size for next iteration
 				stepsizeH = stepsizeH*1.2
