@@ -281,7 +281,7 @@ def main():
 					stepsizeH = stepsizeH/2
 					if stepsizeH < epsilon:
 						print "H converged. RMSE: %s" % cost
-						H_converged = true
+						H_converged = True
 						if W_converged:
 							return
 
