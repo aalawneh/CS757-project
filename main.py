@@ -75,6 +75,17 @@ def calc_cost():
 
 def main():
 	try:
+		os.system("hadoop fs -mkdir proj")
+		os.system("hadoop fs -mkdir proj/input")
+	except:
+		print ""
+	
+	try:
+		os.system("hadoop fs -put 100K-ratings.dat proj/input/")
+	except:
+		print ""
+
+	try:
 		os.system("rm -rf part-00000")
 	except:
 		print ""
