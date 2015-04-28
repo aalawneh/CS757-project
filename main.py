@@ -52,7 +52,7 @@ def calc_cost():
 	os.system("hadoop fs -put wnew.arr proj/input")
 	os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'cost-mapper.py 1000' -reducer 'cost-reducer.py'  -file cost-mapper.py -file cost-reducer.py  -cacheFile proj/input/wnew.arr#wnew.arr -cacheFile proj/input/hnew.arr#hnew.arr")
 
-	os.system("hadoop fs -get proj/output/part-00000")
+	os.system("hadoop fs -cat proj/output/part* > part-00000")
 	os.system("hadoop fs -rm -r proj/output")
 	os.system("hadoop fs -rm proj/input/hnew.arr")
 	os.system("hadoop fs -rm proj/input/wnew.arr")
@@ -138,8 +138,8 @@ def main():
 	cost = calc_cost()
 
 	# Initial stepsizes
-	stepsizeW = 0.1;
-	stepsizeH = 0.1;
+	stepsizeW = 0.01;
+	stepsizeH = 0.01;
 
 	# Start iteration
 	iter = 0;
@@ -163,7 +163,7 @@ def main():
 				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
 				# save dW
-				os.system("hadoop fs -get proj/output/part-00000")
+				os.system("hadoop fs -cat proj/output/part* > part-00000")
 				os.system("mv part-00000 dW.arr")
 
 				dW = np.zeros((vdim,rdim))
@@ -211,7 +211,7 @@ def main():
 				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'nonsparseupdate-mapper.py isForW' -reducer 'nonsparseupdate-reducer.py isForW'  -file nonsparseupdate-mapper.py -file nonsparseupdate-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
 				# save dW
-				os.system("hadoop fs -get proj/output/part-00000")
+				os.system("hadoop fs -cat proj/output/part* > part-00000")
 
 				wFile = open ( 'part-00000' , 'r')
 				for line in wFile:
@@ -248,7 +248,7 @@ def main():
 				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
 				# save dH
-				os.system("hadoop fs -get proj/output/part-00000")
+				os.system("hadoop fs -cat proj/output/part* > part-00000")
 				os.system("mv part-00000 dH.arr")
 
 				dH = np.zeros((rdim,samples))
@@ -297,7 +297,7 @@ def main():
 				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'nonsparseupdate-mapper.py isForW' -reducer 'nonsparseupdate-reducer.py isForW'  -file nonsparseupdate-mapper.py -file nonsparseupdate-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
 				# save dW
-				os.system("hadoop fs -get proj/output/part-00000")
+				os.system("hadoop fs -cat proj/output/part* > part-00000")
 
 				hFile = open ( 'part-00000' , 'r')
 				for line in hFile:
