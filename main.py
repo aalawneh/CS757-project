@@ -10,8 +10,10 @@ except:
     exit(0)
 	
 #this will differ by environment
-streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar"
+#streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar"
 #streaming_jar = "/usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar"
+#hydra
+streaming_jar = "/apps/hadoop-2/share/hadoop/tools/lib/hadoop-streaming-2.4.1.jar -D mapred.reduce.tasks=30"
 
 
 # different input files
