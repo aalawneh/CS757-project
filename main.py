@@ -341,5 +341,9 @@ def main():
 
 		if iter > 14: # When to break
 			break
+		
+	Vapx = np.multiply(H, W)
+	np.savetxt('Vapx.arr', Vapx, '%.18e', delimiter=' ')
+	
 if __name__ == "__main__":
     main()
