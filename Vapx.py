@@ -35,20 +35,25 @@ else:
 moviesDict = {}
 
 for line in open(moviesFileName):
-		movieInfo = re.split('\||\:{2}', line)
-		movieID = movieInfo[0]
-		movieName = movieInfo[1]
-		moviesDict[movieID] = movieName
+	movieInfo = re.split('\||\:{2}', line)
+	movieID = movieInfo[0]
+	movieName = movieInfo[1]
+	moviesDict[movieID] = movieName
 
-counter = 1
+suggestedMovies = [0.0, 0.0, 0.0, 0.0, 0.0]
 print "Movie Suggestions:"
 print "------------------"
 for i in xrange(len(Vapx)):
 	print "userID = %s" % (i+1)
     	for j in xrange(len(Vapx[i])):
 		rating = Vapx[i][j]
-        	if  rating > float(4):
-			movieID = j + 1
-			movieName = moviesDict[str(movieID)]
-           		print '%s' % (movieName)
+		if (any(rating > r for r in suggestedMovies)):
+			suggestedMovies.remove(min(suggestedMovies))
+			suggestedMovies.append(j)
+	print suggestedMovies
+	for m in xrange(len(suggestedMovies)):
+		m = m + 1
+		movieName = moviesDict[str(m)]
+           	print '%s' % (movieName)
 	print "-------------------------------------------"
+	suggestedMovies = [0.0, 0.0, 0.0, 0.0, 0.0]
