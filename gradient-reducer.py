@@ -13,6 +13,8 @@ if sys.argv[1] == "isForW":
 
 W = []
 H = []
+vdim = int(sys.argv[2])
+samples = int(sys.argv[3])
 
 def read_input(file):
     for line in file:
@@ -25,9 +27,9 @@ def main(separator='\t'):
 
 	vVector = []
 	if isForW == True:
-		vVector = np.zeros(1682) # row
+		vVector = np.zeros(samples) # row
 	else:
-		vVector = np.zeros(943) # column
+		vVector = np.zeros(vdim) # column
 		
 	line = read_input(sys.stdin)
 	for line in sys.stdin:
@@ -41,9 +43,9 @@ def main(separator='\t'):
 				computeGradiant(oldKey, vVector)
 
 				if isForW == True:					
-					vVector = np.zeros(1682) # row
+					vVector = np.zeros(samples) # row
 				else:
-					vVector = np.zeros(943) # column
+					vVector = np.zeros(vdim) # column
 	
 			oldKey = thisKey
 			index, value = value_data.split(',')

@@ -9,13 +9,20 @@ except:
     print "This implementation requires the numpy module."
     exit(0)
 	
-#this will differ by environment
-streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar"
-#streaming_jar = "/usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar"
+if len(sys.argv) < 7:
+	print "Usage: ./main.py input_file rows columns inside_dimension sparseness_W sparseness_H"
+	return
 
+#this will differ by environment
+#streaming_jar = "/usr/local/Cellar/hadoop/2.6.0/libexec/share/hadoop/tools/lib/hadoop-streaming-2.6.0.jar"
+#streaming_jar = "/usr/lib/hadoop-0.20-mapreduce/contrib/streaming/hadoop-streaming-2.0.0-mr1-cdh4.1.1.jar"
+#hydra
+streaming_jar = "/apps/hadoop-2/share/hadoop/tools/lib/hadoop-streaming-2.4.1.jar -D mapred.reduce.tasks=10"
 
 # different input files
-input_file = "proj/input/100K-ratings.dat"
+input_file = sys.argv[1]
+os.system("hadoop fs -put "+input_file+" proj/input")
+input_file = "proj/input/"+input_file
 
 def projfunc(s, k1, k2):
 	# this will be a mapreduce job later
@@ -84,16 +91,18 @@ def main():
 	#os.system("hadoop fs -mkdir proj/input");	
 	#os.system("hadoop fs -put V.arr proj/input");
 
-	# Data dimensions 49
-	rdim = 19
-	# len(V) The number of rows in V - For Faces dataset it is 361
-	# This is the number of users
-	vdim = 943 
-	# len(input[0]) The number of columns in V - For Faces dataset it is 2429
-	samples = 1682 
+	# internal dimension
+	rdim = int(sys.argv[4])
+	# The number of rows in V
+	vdim = int(sys.argv[2])
+	# The number of columns in V
+	samples = int(sys.argv[3])
+
+	reducer_args = " %d %d " % (vdim, samples)
+
 	# sparseness constraints for W and H
-	sW = 0.1
-	sH = 0.1
+	sW = float(sys.argv[5])
+	sH = float(sys.argv[6])
 	# epsilon value for convergence detection
 	epsilon = 1e-5
 	W_converged = False
@@ -160,7 +169,7 @@ def main():
 				# Map/Reduce Job 1
 				# ####  Mapper: send one V row to the reducer
 				# ####  Reducer: calculate the gradient dW = (W*H-V)*H'
-				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForW' -reducer 'gradient-reducer.py isForW" + reducer_args + "'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
 				# save dW
 				os.system("hadoop fs -cat proj/output/part* > part-00000")
@@ -247,7 +256,7 @@ def main():
 				# Map/Reduce Job 1
 				# ####  Mapper: send one V column to the reducer
 				# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
-				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
+				os.system("hadoop jar " + streaming_jar + " -input " + input_file + " -output proj/output/ -mapper 'gradient-mapper.py isForH' -reducer 'gradient-reducer.py isForH" + reducer_args + "'  -file gradient-mapper.py -file gradient-reducer.py  -cacheFile proj/input/w.arr#w.arr -cacheFile proj/input/h.arr#h.arr")
 
 				# save dH
 				os.system("hadoop fs -cat proj/output/part* > part-00000")

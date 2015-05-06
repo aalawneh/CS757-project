@@ -8,10 +8,13 @@ try:
 except:
     print "This implementation requires the numpy module."
     exit(0)
-	
+
+if len(sys.argv) < 7:
+	print "Usage: ./main.py input_file rows columns inside_dimension sparseness_W sparseness_H"
+	return
 
 # different input files
-input_file = "100K-ratings.dat"
+input_file = sys.argv[1]
 
 def projfunc(s, k1, k2):
 	# this will be a mapreduce job later
@@ -60,15 +63,18 @@ def calc_cost():
 
 
 def main():
-	# Data dimensions 19 
-	rdim = 19
-	# This is the number of rows in the matrix V
-	vdim = 943 
-	# len(input[0]) The number of columns in matrix V 
-	samples = 1682 
+	# internal dimension
+	rdim = int(sys.argv[4])
+	# The number of rows in V
+	vdim = int(sys.argv[2])
+	# The number of columns in V
+	samples = int(sys.argv[3])
+
+	reducer_args = " %d %d " % (vdim, samples)
+
 	# sparseness constraints for W and H
-	sW = 0.1
-	sH = 0.1
+	sW = float(sys.argv[5])
+	sH = float(sys.argv[6])
 	# epsilon value for convergence detection
 	epsilon = 1e-5
 	W_converged = False
@@ -124,7 +130,7 @@ def main():
 				# Map/Reduce Job 1
 				# ####  Mapper: send one V row to the reducer
 				# ####  Reducer: calculate the gradient dW = (W*H-V)*H'
-				os.system("cat " + input_file + " |  ./gradient-mapper.py isForW | sort -n | ./gradient-reducer.py isForW > gradient-output.dat")
+				os.system("cat " + input_file + " |  ./gradient-mapper.py isForW | sort -n | ./gradient-reducer.py isForW " + reducer_args + " > gradient-output.dat")
 
 				# save dW
 				os.system("mv gradient-output.dat dW.arr")
@@ -208,7 +214,7 @@ def main():
 				# Map/Reduce Job 1
 				# ####  Mapper: send one V column to the reducer
 				# ####  Reducer: calculate the gradient dH = W'*(W*H-V);
-				os.system("cat " + input_file + " | ./gradient-mapper.py isForH | sort -n | ./gradient-reducer.py isForH > gradient.dat")
+				os.system("cat " + input_file + " | ./gradient-mapper.py isForH | sort -n | ./gradient-reducer.py isForH" + reducer_args + " > gradient.dat")
 
 				# save dH
 
