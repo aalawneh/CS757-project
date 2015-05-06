@@ -147,7 +147,7 @@ def main():
 					# do the projection
 					norms = np.sqrt(np.sum(np.square(Wnew),0))
 					for i in range(0,rdim):
-						Wnew[:,i] = projfunc(Wnew[:,i],L1a*norms[i],1)
+						Wnew[:,i] = projfunc(Wnew[:,i],L1a*norms[i],norms[i]**2)
 
 					np.savetxt('wnew.arr', Wnew, '%.18e', delimiter=' ')
 
@@ -285,7 +285,7 @@ def main():
 
 			np.savetxt('h.arr', H, '%.18e', delimiter=' ')
 
-		if iter > 14: # When to break
+		if iter > 49: # When to break
 			break
 if __name__ == "__main__":
     main()
