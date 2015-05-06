@@ -330,7 +330,7 @@ def main():
 			os.system("hadoop fs -rm proj/input/w.arr")
 			os.system("hadoop fs -put w.arr proj/input")
 
-		if iter > 14: # When to break
+		if iter > 49: # When to break
 			break
 if __name__ == "__main__":
     main()
