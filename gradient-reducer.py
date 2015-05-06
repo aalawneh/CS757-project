@@ -4,7 +4,7 @@
 # dH = W'*(W*H-V);
 
 import sys
-import numpy
+import numpy as np
 
 # Passing arguments isForW -mapper 'mapper.py arg1 arg2'
 isForW = False
@@ -25,10 +25,9 @@ def main(separator='\t'):
 
 	vVector = []
 	if isForW == True:
-		vVector = numpy.zeros(1682) # row
+		vVector = np.zeros(1682) # row
 	else:
-		vVector = numpy.zeros(943) # column
-	vVector = vVector - 2
+		vVector = np.zeros(943) # column
 		
 	line = read_input(sys.stdin)
 	for line in sys.stdin:
@@ -42,11 +41,9 @@ def main(separator='\t'):
 				computeGradiant(oldKey, vVector)
 
 				if isForW == True:					
-					vVector = numpy.zeros(1682) # row
+					vVector = np.zeros(1682) # row
 				else:
-					vVector = numpy.zeros(943) # column
-				vVector = vVector - 2
-					
+					vVector = np.zeros(943) # column
 	
 			oldKey = thisKey
 			index, value = value_data.split(',')
@@ -62,31 +59,26 @@ def computeGradiant(theIndex, vVector):
 
 	if isForW == True:
 		# dW = (W*H-V)*H'
-		HTrans = (numpy.array(H)).transpose()
-		wArr = numpy.array(W)
-		rowW = wArr[index,:]
 		# we need H and row of W
-		tmp = numpy.subtract(numpy.dot(rowW,H),vVector)
-		tmp[numpy.nonzero(vVector==0)]=0
-		dW = numpy.dot(tmp, HTrans)
+		tmp = np.subtract(np.dot(W[index,:],H),vVector)
+		tmp[np.nonzero(vVector==0)]=0
+		dW = np.dot(tmp, H.transpose())
 		print '%s\t%s' % (index, ",".join(map(str, dW)))
 	else: 
 		# dH = W'*(W*H-V);
-		WTrans = (numpy.array(W)).transpose()
-		hArr = numpy.array(H)
-		colH = hArr[:,index]
-	
 		# we need W and column of H
-		tmp = numpy.subtract(numpy.dot(W,colH), vVector)
-		tmp[numpy.nonzero(vVector<-1)]=0
-		dH = numpy.dot(WTrans, tmp)
+		tmp = np.subtract(np.dot(W,H[:,index]), vVector)
+		tmp[np.nonzero(vVector==0)]=0
+		dH = np.dot(W.transpose(), tmp)
 		print '%s\t%s' % (index, ",".join(map(str, dH)))   
 	
 if __name__ == "__main__":
 	wf = open ( 'w.arr' , 'r')
 	W = [ map(float,line.split()) for line in wf ]
+	W = np.array(W)
 
 	hf = open ( 'h.arr' , 'r')
 	H = [ map(float,line.split()) for line in hf ]
+	H = np.array(H)
 
 	main()

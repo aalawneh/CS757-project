@@ -21,7 +21,7 @@ def main():
         col = int(col)
         val = float(val)
         n = n+1
-        sse = sse + (val - (np.dot(W[row,:], H[:,col])*2+3))**2
+        sse = sse + (val - (np.dot(W[row,:], H[:,col])*5.0))**2
         
     print '%s\t%s' % (n, sse)
 

@@ -14,22 +14,21 @@ except:
 input_file = "100K-ratings.dat"
 
 def projfunc(s, k1, k2):
-	return s
 	# this will be a mapreduce job later
 	n = len(s)
 
 	v = s + (k1-sum(s))/n
 
 	zerocoeff = []
-    
+
 	while True:
 		mid = np.ones(n)*k1/(n-len(zerocoeff))
 		mid[zerocoeff] = 0
 		w = v - mid
-		a = sum(np.square(w))
+		a = np.sum(np.square(w))
 		b = 2*np.dot(w,v)
-		c = sum(np.square(v))-k2
-		alphap = (-b+np.sqrt(b**2-4*a*c))/(2*a)
+		c = np.sum(np.square(v))-k2
+		alphap = (-b+np.real(np.sqrt(complex(b**2-4*a*c))))/(2*a)
 		v = alphap*w + v
 
 		if all(v>=0):
@@ -68,8 +67,8 @@ def main():
 	# len(input[0]) The number of columns in matrix V 
 	samples = 1682 
 	# sparseness constraints for W and H
-	sW = 0.01
-	sH = 0.01
+	sW = 0.1
+	sH = 0.1
 	# epsilon value for convergence detection
 	epsilon = 1e-5
 	W_converged = False
@@ -77,9 +76,10 @@ def main():
 
 	# Create initial matrices: 
 	# vdim-by-rdim matrix of normally distributed random numbers.
-	W = np.random.randn(vdim,rdim)
+	W = abs(np.random.randn(vdim,rdim))
 	# rdim-by-samples matrix of normally distributed random numbers.
-	H = np.random.randn(rdim,samples)
+	H = abs(np.random.randn(rdim,samples))
+	H = np.divide(H,np.dot(np.sqrt(np.sum(np.square(H),1)).reshape(rdim,1),np.ones((1,samples))))
 
 	if sW != None:
 		L1a = np.sqrt(vdim)-(np.sqrt(vdim)-1)*sW
@@ -102,14 +102,14 @@ def main():
 	cost = calc_cost()
 
 	# Initial stepsizes
-	stepsizeW = 0.01;
-	stepsizeH = 0.01;
+	stepsizeW = 1.0
+	stepsizeH = 1.0
 
 	# Start iteration
-	iter = 0;
+	iter = 0
 
 	while True:
-		iter += 1;
+		iter += 1
 		print "Iteration %s" % iter
 		
 		if W_converged == False:
@@ -145,8 +145,9 @@ def main():
 					Wnew = np.subtract(W, stepsizeW*dW)
 
 					# do the projection
+					norms = np.sqrt(np.sum(np.square(Wnew),0))
 					for i in range(0,rdim):
-						Wnew[:,i] = projfunc(Wnew[:,i],L1a,1)
+						Wnew[:,i] = projfunc(Wnew[:,i],L1a*norms[i],1)
 
 					np.savetxt('wnew.arr', Wnew, '%.18e', delimiter=' ')
 
@@ -168,7 +169,8 @@ def main():
 
 				#increase step size for next iteration
 				stepsizeW = stepsizeW*1.2
-				W = Wnew
+				if W_converged == False:
+					W = Wnew
 
 			else:
 				os.system("cat " + input_file + " | ./nonsparseupdate-mapper.py isForW | sort -n | ./nonsparseupdate-reducer.py isForW > nonsparseupdate.dat")
@@ -252,10 +254,11 @@ def main():
 
 				#increase step size for next iteration
 				stepsizeH = stepsizeH*1.2
-				H = Hnew
+				if H_converged == False:
+					H = Hnew
 
 			else:
-				os.system("cat " + input_file + "| ./nonsparseupdate-mapper.py isForW | sort -n | ./nonsparseupdate-reducer.py isForW > nonsparseupdate.dat")
+				os.system("cat " + input_file + "| ./nonsparseupdate-mapper.py isForH | sort -n | ./nonsparseupdate-reducer.py isForH > nonsparseupdate.dat")
 
 				# save dW
 
@@ -278,9 +281,9 @@ def main():
 				norms = np.sqrt(sum(np.square(H.transpose()))).reshape(rdim,1)
 				H = np.divide(H,np.dot(norms,np.ones((1,samples))))
 				W = np.multiply(W,np.dot(np.ones((vdim,1)),norms.transpose()))
-				np.savetxt('h.arr', H, '%.18e', delimiter=' ')
 				np.savetxt('w.arr', W, '%.18e', delimiter=' ')
 
+			np.savetxt('h.arr', H, '%.18e', delimiter=' ')
 
 		if iter > 14: # When to break
 			break

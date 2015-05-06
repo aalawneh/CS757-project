@@ -67,7 +67,7 @@ def computeUpdate(theIndex, vVector):
 		# H = H.*(W'*V)./(W'*W*H+1e-9)
 		colH = H[:,index]
 		hUpdate = np.divide(np.multiply(colH,np.dot(W.transpose(),vVector)),np.dot(np.dot(W.transpose(),W),colH)+1e-9)
-		print '%s\t%s' % (index, ",".join(map(str, dH)))
+		print '%s\t%s' % (index, ",".join(map(str, hUpdate)))
 
 if __name__ == "__main__":
 	wf = open ( 'w.arr' , 'r')
